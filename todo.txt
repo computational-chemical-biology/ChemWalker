@@ -1,0 +1,7 @@
+- Format package;
+- Create README including installation with MAGMA; - OK
+- Create intuition for fragmentation;
+- Run validation script;
+- Include fingerprints in the validation;
+- Compute propagation distance;
+- Create visualization with D3j or cytoscape;
