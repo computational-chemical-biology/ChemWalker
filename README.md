@@ -17,7 +17,7 @@ source activate walker
 # Install dependencies
 conda install -c rdkit rdkit
 conda install cython lxml nose coverage
-pip install pandas networkx sklearn scipy
+pip install pandas networkx sklearn scipy dill xmltodict
 pip install https://github.com/uqfoundation/pathos/blob/master/external/pp-1.6.4.1.zip
    
 pip install git+https://github.com/uqfoundation/pathos.git
