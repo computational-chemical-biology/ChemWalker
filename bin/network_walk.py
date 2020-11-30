@@ -77,17 +77,22 @@ class MyEncoder(json.JSONEncoder):
         else:
             return super(MyEncoder, self).default(obj)
 
-tasklist = ['29d517e67067476bae97a32f2d4977e0']
+tasklist = ['29d517e67067476bae97a32f2d4977e0', 'd270e79876cb48deb6aabd52a4fc647e',
+            'e2125577fe2646129becc248b96d42ba', '81e01fe178d3424686079903d908b536',
+            'daa546b038604e5f83eaafb811bd0313', '61c8a0d01309408f8ecceb5b31dab1a8',
+            '60fe9f77b3d04789997bf19aa1a0a828', '53f8494ff9e8423697eebf4e98d287f0',
+            'c93a840100ec49bdbb3c12e5ed1e4790',
+            '5fd60b02f8ab4274bf45fd5b715b5e0b']
 
 directory = 'large_result'
 
 if not os.path.exists(directory):
     os.makedirs(directory)
 
-nap_result = Proteosafe('29d517e67067476bae97a32f2d4977e0', 'nap')
-nap_result.get_nap()
 
 for task in tasklist:
+    nap_result = Proteosafe(task, 'nap')
+    nap_result.get_nap()
     net = nap_result.net
     tabgnps = nap_result.tabgnps
     lid = nap_result.lid
