@@ -34,6 +34,17 @@ python setup.py develop
 pip install git+https://gitlab.com/rsilvabioinfo/chemwalker.git
 ```
 
+### Optionally, environment.yml to update and install the env 
+
+To install
+```
+conda env create -f environment.yml
+```
+To update 
+```
+conda env export | grep -v "^prefix: " > environment.yml
+```
+
 ### Alternative Docker  
 
 ```
