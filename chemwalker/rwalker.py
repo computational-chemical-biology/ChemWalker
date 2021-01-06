@@ -69,8 +69,8 @@ def getTanimoto(ms, method):
                (lambda x:rdMolDescriptors.GetHashedMorganFingerprint(x,2),'MFP2-bits'),
                (lambda x:rdMolDescriptors.GetHashedMorganFingerprint(x,3),'MFP3-bits'),
                (lambda x:rdMolDescriptors.GetAtomPairFingerprint(x),'AP'),
-       (lambda x:rdMolDescriptors.GetTopologicalTorsionFingerprint(x),'TT'),
-       (lambda x:rdMolDescriptors.GetHashedAtomPairFingerprintAsBitVect(x),'AP-bits'),
+               (lambda x:rdMolDescriptors.GetTopologicalTorsionFingerprint(x),'TT'),
+               (lambda x:rdMolDescriptors.GetHashedAtomPairFingerprintAsBitVect(x),'AP-bits'),
                (lambda x:rdMolDescriptors.GetHashedTopologicalTorsionFingerprintAsBitVect(x),'TT-bits'),
                (lambda x:rdMolDescriptors.GetMACCSKeysFingerprint(x),'MACCS'),
                (lambda x:pyAvalonTools.GetAvalonFP(x,512),'Avalon-512'),
@@ -163,7 +163,7 @@ def cand_pair(snet, tlid, method, parallel = True, meansc = True, ncors=0):
         scandpair = candpair[[12, 13, 11]]
     return scandpair
 
-def random_walk(graph, seed, restart_prob=0.5, step=0, epsilon=0.000001,
+def random_walk(graph, seed, restart_prob=0.8, step=0, epsilon=0.000001,
                 niter=10000, sparce_matrix = True):
     p_0 = set_up_p0(seed, graph)
     thresh = 1
@@ -204,7 +204,8 @@ def random_walk(graph, seed, restart_prob=0.5, step=0, epsilon=0.000001,
 
 
 # https://github.com/TuftsBCB/Walker/blob/master/walker.py
-def walker(otabgnps, snet, lid, meansc = True, sparce_matrix=True, parallel=True, fix=True, rcandidate=False, seed_ctr=0.1, ncors=0):
+def walker(otabgnps, snet, lid, meansc = True, sparce_matrix=True, parallel=True,
+           restart_prob = 0.8, fix=True, rcandidate=False, seed_ctr=0, ncors=0):
     """ Performs the random walk with re-starts"""
     stabgnps = otabgnps.copy()
     # Think of resampling as using ids as seeds and not removing from list
@@ -324,7 +325,7 @@ def walker(otabgnps, snet, lid, meansc = True, sparce_matrix=True, parallel=True
     #source = ['0', '1']
     # 'Restart probability for random walk', default=0.7
     # Lower the re-start probability when it is random?
-    restart_prob = 0.7
+    #restart_prob = 0.7
     # '--original_graph_prob', default=0.1
     og_prob = 0.1
     # 'seed', help='Seed file, to pull start nodes from'
@@ -354,7 +355,7 @@ def walker(otabgnps, snet, lid, meansc = True, sparce_matrix=True, parallel=True
     # print small matrix to inspect col normalization
     # plot network with 3 nodes
     if sparce_matrix:
-        og_not_normalized = nx.to_scipy_sparse_matrix(G) 
+        og_not_normalized = nx.to_scipy_sparse_matrix(G)
     else:
         og_not_normalized = nx.to_numpy_matrix(G)
 
@@ -411,7 +412,7 @@ def walker(otabgnps, snet, lid, meansc = True, sparce_matrix=True, parallel=True
     return [lrank, dprob]
 
 def net_plt(graph, node_weight, layout_file='', edge_saling_factor=5,
-node_saling_factor=10000, fname=''):
+            node_saling_factor=10000, fname=''):
     edw = [x[2]['weight'] for x in list(graph.edges(data=True))]
     if layout_file=='':
         pos = nx.spring_layout(graph)
