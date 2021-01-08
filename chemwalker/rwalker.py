@@ -83,7 +83,8 @@ def getTanimoto(ms, method):
     return DataStructs.TanimotoSimilarity(fp1,fp2)
 
 # Needs expansion to encompass different fingerprints and combinations?? 
-def pairSimilarity(inchipair, metric=DataStructs.TanimotoSimilarity, fptype='circular'):
+def pairSimilarity(inchipair, metric=DataStructs.TanimotoSimilarity, 
+                   fptype='circular'):
     """ Calculates fingerprint similarity """
     ms = [Chem.MolFromInchi(x) for x in inchipair]
     if fptype=='circular':
@@ -135,19 +136,20 @@ def edge_weight2(paramTuple):
         paramTuple.extend([getTanimoto([inchi1, inchi2], method)])
     return paramTuple
 
-
-
 def cand_pair(snet, tlid, method, parallel = True, meansc = True, ncors=0):
     if parallel:
-        dfparam = pd.merge(snet[['V1', 'V2', 'V5']], tlid[['Identifier', 'InChI', 'cluster.index', 'Score']], left_on='V1', right_on='cluster.index', how='left')
-        dfparam = pd.merge(dfparam, tlid[['Identifier', 'InChI', 'cluster.index', 'Score']], left_on='V2', right_on='cluster.index', how='left')
-        dfnull = dfparam['cluster.index_x'].isnull() | dfparam['cluster.index_y'].isnull()
+        dfparam = pd.merge(snet[['CLUSTERID1', 'CLUSTERID2', 'Cosine']],
+                           tlid[['Identifier', 'InChI', 'cluster index', 'Score']],
+                           left_on='CLUSTERID1', right_on='cluster index', how='left')
+        dfparam = pd.merge(dfparam, tlid[['Identifier', 'InChI', 'cluster index', 'Score']],
+                           left_on='CLUSTERID2', right_on='cluster index', how='left')
+        dfnull = dfparam['cluster index_x'].isnull() | dfparam['cluster index_y'].isnull()
         if sum(dfnull):
             dfparam= dfparam[np.invert(dfnull)]
         dfparam['meansc'] = meansc
-        dfparam.drop(['V1', 'V2'], inplace=True, axis=1)
-        dfparam['cluster.index_x'] = dfparam['cluster.index_x'].astype(int)
-        dfparam['cluster.index_y'] = dfparam['cluster.index_y'].astype(int)
+        dfparam.drop(['CLUSTERID1', 'CLUSTERID2'], inplace=True, axis=1)
+        dfparam['cluster index_x'] = dfparam['cluster index_x'].astype(int)
+        dfparam['cluster index_y'] = dfparam['cluster index_y'].astype(int)
         dfparam['method'] = method
         dfparam = dfparam.values.tolist()
         if(ncors):
@@ -157,7 +159,7 @@ def cand_pair(snet, tlid, method, parallel = True, meansc = True, ncors=0):
         candpair = pool.map(edge_weight2, dfparam)
         candpair = pd.DataFrame(candpair)
         candpair.reset_index(drop=True, inplace=True)
-        # Keep track of cluster id and candidate id 
+        # Keep track of cluster id and candidate id                                                      
         candpair[12] = candpair.apply(lambda a: '_'.join(map(str, a[[3, 1]])), axis=1 )
         candpair[13] = candpair.apply(lambda a: '_'.join(map(str, a[[7, 5]])), axis=1 )
         scandpair = candpair[[12, 13, 11]]

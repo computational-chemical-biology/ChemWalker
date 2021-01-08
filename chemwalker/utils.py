@@ -1,4 +1,5 @@
 import os
+import json
 import subprocess
 import numpy as np
 import pandas as pd
@@ -114,3 +115,140 @@ def run_metfrag(spectrum, db, cluster_index, adduct='[M+H]+', ppm=15, abs_diff=0
     os.remove(pname)
 
     return metres
+
+def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index,
+                   method = 'RDKit7-linear', adduct='[M+H]+',
+                   ppm=15, ispositive = True, metfrag_res=''):
+    snet = net[net['ComponentIndex']==comp_index]
+
+    # Obtain the nodes in the component
+    nds = list(set(snet['CLUSTERID1'].tolist()+snet['CLUSTERID2'].tolist()))
+    print('Component with %s nodes' % len(nds))
+
+    # pd.DataFrame([[1, 1, 2, 2, 2], [0.9, 0.8, 0.75, 0.75, 0.6], ['A', 'A', 'B', 'B', 'B']], index=['cluster index', 'MQScore', 'PI']).T 
+    dbmatch.rename(columns={'#Scan#': 'cluster index', 'Precursor_MZ': 'parent mass',
+                            'RT_Query': 'RTMean', 'Compound_Name': 'LibraryID'}, inplace=True)
+    mxscore = dbmatch.groupby('cluster index')['MQScore'].idxmax().values
+    dbmatch = dbmatch.loc[mxscore]
+
+    otabgnps = dbmatch.loc[dbmatch['cluster index'].isin(nds),
+                       ['cluster index', 'parent mass', 'RTMean',
+                        'LibraryID', 'Smiles', 'INCHI' ]]
+    otabgnps.fillna('', inplace=True)
+    idx_inchi = otabgnps[(otabgnps['Smiles']!='') &
+                         (otabgnps['INCHI']=='')].index
+    if len(idx_inchi):
+        for i in idx_inchi:
+            try:
+                otabgnps.loc[i, 'INCHI'] = Chem.MolToInchi(Chem.MolFromSmiles(otabgnps.loc[i, 'Smiles']))
+            except:
+                pass
+    inchikey = [Chem.InchiToInchiKey(x) if type(x)==str else '' for x in otabgnps['INCHI']]
+
+    # Record the first block of InChIKey
+    otabgnps['InChIKey1'] = [x.split('-')[0] if x!='' else '' for x in inchikey]
+
+    lid = []
+
+    assert len(spectra) == len(tabgnps),"Mismatch between spectra and attributes."
+
+    start = time.time()
+    print('Calculating in silico fragmentation with MetFrag...')
+    for i in nds:
+        if any((otabgnps['cluster index']==i) & (otabgnps['InChIKey1']!='')):
+            continue
+        j = np.where(tabgnps['cluster index']==i)[0][0]
+        lid.append(run_metfrag(spectra[j], db, i,
+                               adduct=adduct, ppm=ppm,
+                               ispositive=ispositive))
+    end = time.time()
+    print('in silico fragmentation done in:', end - start, 'seconds')
+
+    tlid = pd.concat(lid)
+    if not len(tlid):
+        raise ValueError("No candidate found by MetFrag")
+
+    if  metfrag_res !='':
+        with open('%s.json' % metrag_res) as f:
+            json.dump(tlid.to_dict(), f)
+
+    nr = (otabgnps['InChIKey1']!='').sum()
+    if nr:
+        cn = tlid.columns.tolist()
+        dsource = pd.DataFrame([['']*len(cn)]*nr, columns=cn)
+        dsource['InChI'] = otabgnps.loc[(otabgnps['InChIKey1']!=''), 'INCHI'].tolist()
+        dsource['cluster index'] = otabgnps.loc[(otabgnps['InChIKey1']!=''), 'cluster index'].tolist()
+        dsource['InChIKey1'] = otabgnps.loc[(otabgnps['InChIKey1']!=''), 'InChIKey1'].tolist()
+        dsource['Identifier'] = otabgnps.loc[(otabgnps['InChIKey1']!=''), 'LibraryID'].tolist()
+        dsource['Score'] = 1
+        dsource['Score'] = dsource['Score'].astype(float)
+        dsource['cluster index'] = dsource['cluster index'].astype(int)
+        tlid = pd.concat([tlid, dsource]).reset_index(drop=True)
+
+    start = time.time()
+    print('Calculating pairwise candidate similarities...')
+    scandpair = cand_pair(snet, tlid, method)
+    end = time.time()
+    print('similarities done in:', end - start, 'seconds')
+
+    # include nodes without candidates?
+    # and remove candidates for gnps ids
+    miss_nds = set(tabgnps.loc[tabgnps['cluster index'].isin(nds), 'cluster index'])-set(tlid['cluster index'])
+    if miss_nds:
+        for n in miss_nds:
+            npairs = snet.loc[(snet.CLUSTERID1==n) | (snet.CLUSTERID2==n),
+                              ['CLUSTERID1', 'CLUSTERID2']].stack().unique().tolist()
+            npairs = set(npairs)-{n}
+            for p in npairs:
+                pstr = '%s_' % p
+                ploc = (scandpair.iloc[:,0].str.contains(pstr) |
+                        scandpair.iloc[:,1].str.contains(pstr))
+                # mean or min?
+                pmean = scandpair[ploc].iloc[:,2].mean()
+                pairs = scandpair.loc[ploc].iloc[:,[0,1]].stack()
+                pairs = pairs[pairs.str.contains(pstr)].unique().tolist()
+                dftmp = pd.DataFrame(zip(pairs, ['%s_nomatch' % n]*len(pairs)))
+                dftmp[2] = pmean
+                dftmp.columns = scandpair.columns
+                scandpair = pd.concat([scandpair,
+                                       dftmp]).reset_index(drop=True)
+
+    G = nx.Graph()
+    edge_list = scandpair.apply(lambda a: tuple(a), axis=1).tolist()
+    G.add_weighted_edges_from(edge_list)
+
+    glib = otabgnps.loc[otabgnps['InChIKey1']!='', 'cluster index'].index.tolist()
+    source = []
+    for i in glib:
+        k,g = otabgnps.loc[i, ['InChIKey1', 'cluster index']].tolist()
+        ksel = tlid[(tlid['cluster index']==g) & (tlid['InChIKey1']==k)]
+        if len(ksel):
+            idx = ksel['Identifier'].tolist()[0]
+            print(f'Seed - InChIKey1:{k}, cluster index:{g}, Identifier:{idx}')
+        else:
+            print(f'No seed for - InChIKey1:{k}, cluster index:{g}')
+        source.extend([x for x in G.nodes() if bool(re.search('%s_%s' % (g,idx), x))])
+
+    if not len(source):
+        raise ValueError("No GNPS id to propagate from")
+
+    start = time.time()
+    print('Walking on the graph...')
+    p_t = random_walk(G, source)
+    end = time.time()
+    print('walking done in:', end - start, 'seconds')
+
+    tlid['uid'] = tlid.apply(lambda a: f'{a["cluster index"]}_{a["Identifier"]}', axis=1)
+
+    mol_probs = zip(G.nodes(), p_t.tolist())
+    dprob = pd.DataFrame(list(mol_probs))
+    dprob['cluster index'] = dprob.apply(lambda a: int(a[0].split('_')[0]), axis=1)
+    dprob['Identifier'] = dprob.apply(lambda a: a[0].split('_')[1], axis=1)
+    dprob.sort_values(['cluster index'], inplace=True)
+    dprob.rename(columns={0: 'uid', 1: 'chw_prob'}, inplace=True)
+    dprob.reset_index(inplace=True, drop=True)
+    nprob = dprob.groupby('cluster index').apply(lambda grp: grp.chw_prob/grp.chw_prob.max())
+    dprob['chw_prob'] = pd.DataFrame(nprob).reset_index()['chw_prob']
+    tlid = pd.merge(tlid, dprob[['uid', 'chw_prob']], on='uid')
+    return tlid
+
