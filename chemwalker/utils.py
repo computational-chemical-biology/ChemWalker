@@ -1,8 +1,13 @@
 import os
+import re
+import time
 import json
 import subprocess
 import numpy as np
 import pandas as pd
+from chemwalker.rwalker import cand_pair, random_walk
+from rdkit import Chem
+import networkx as nx
 
 
 precursor_ion_mode_positive = {
@@ -116,7 +121,7 @@ def run_metfrag(spectrum, db, cluster_index, adduct='[M+H]+', ppm=15, abs_diff=0
 
     return metres
 
-def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index,
+def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
                    method = 'RDKit7-linear', adduct='[M+H]+',
                    ppm=15, ispositive = True, metfrag_res=''):
     snet = net[net['ComponentIndex']==comp_index]
@@ -143,7 +148,7 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index,
                 otabgnps.loc[i, 'INCHI'] = Chem.MolToInchi(Chem.MolFromSmiles(otabgnps.loc[i, 'Smiles']))
             except:
                 pass
-    inchikey = [Chem.InchiToInchiKey(x) if type(x)==str else '' for x in otabgnps['INCHI']]
+    inchikey = [Chem.InchiToInchiKey(x) if x!='' else '' for x in otabgnps['INCHI']]
 
     # Record the first block of InChIKey
     otabgnps['InChIKey1'] = [x.split('-')[0] if x!='' else '' for x in inchikey]
