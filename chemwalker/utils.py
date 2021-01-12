@@ -115,7 +115,8 @@ def run_metfrag(spectrum, db, cluster_index, adduct='[M+H]+', ppm=15, abs_diff=0
         metres = pd.DataFrame()
 
     os.remove(sname)
-    os.remove(ndb)
+    if type(db)!=str:
+        os.remove(ndb)
     os.remove(cname)
     os.remove(pname)
 
@@ -209,10 +210,14 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
                 ploc = (scandpair.iloc[:,0].str.contains(pstr) |
                         scandpair.iloc[:,1].str.contains(pstr))
                 # mean or min?
-                pmean = scandpair[ploc].iloc[:,2].mean()
-                pairs = scandpair.loc[ploc].iloc[:,[0,1]].stack()
-                pairs = pairs[pairs.str.contains(pstr)].unique().tolist()
-                dftmp = pd.DataFrame(zip(pairs, ['%s_nomatch' % n]*len(pairs)))
+                if not ploc.sum():
+                    pmean = scandpair.iloc[:,2].quantile(0.1)
+                    dftmp = pd.DataFrame(['%s_nomatch' % n, '%s_nomatch' % p]).T
+                else:
+                    pmean = scandpair[ploc].iloc[:,2].mean()
+                    pairs = scandpair.loc[ploc].iloc[:,[0,1]].stack()
+                    pairs = pairs[pairs.str.contains(pstr)].unique().tolist()
+                    dftmp = pd.DataFrame(zip(pairs, ['%s_nomatch' % n]*len(pairs)))
                 dftmp[2] = pmean
                 dftmp.columns = scandpair.columns
                 scandpair = pd.concat([scandpair,
@@ -256,4 +261,45 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
     dprob['chw_prob'] = pd.DataFrame(nprob).reset_index()['chw_prob']
     tlid = pd.merge(tlid, dprob[['uid', 'chw_prob']], on='uid')
     return tlid
+
+def val_known(tlid, dbmatch):
+    dbmatch.rename(columns={'#Scan#': 'cluster index', 'Precursor_MZ': 'parent mass',
+                            'RT_Query': 'RTMean', 'Compound_Name': 'LibraryID'}, inplace=True)
+    mxscore = dbmatch.groupby('cluster index')['MQScore'].idxmax().values
+    dbmatch = dbmatch.loc[mxscore]
+
+    otabgnps = dbmatch.loc[dbmatch['cluster index'].isin(tlid['cluster index']),
+                       ['cluster index', 'parent mass', 'RTMean',
+                        'LibraryID', 'Smiles', 'INCHI' ]]
+    otabgnps.fillna('', inplace=True)
+    idx_inchi = otabgnps[(otabgnps['Smiles']!='') &
+                         (otabgnps['INCHI']=='')].index
+    if len(idx_inchi):
+        for i in idx_inchi:
+            try:
+                otabgnps.loc[i, 'INCHI'] = Chem.MolToInchi(Chem.MolFromSmiles(otabgnps.loc[i, 'Smiles']))
+            except:
+                pass
+    inchikey = [Chem.InchiToInchiKey(x) if x!='' else '' for x in otabgnps['INCHI']]
+
+    # Record the first block of InChIKey
+    otabgnps['InChIKey1'] = [x.split('-')[0] if x!='' else '' for x in inchikey]
+
+    lrank = []
+    for idx in otabgnps.index:
+        if otabgnps.loc[idx, 'InChIKey1']!='':
+            tmpid = tlid[tlid['cluster index']==otabgnps.loc[idx, 'cluster index']]
+            if tmpid.shape[0]==0:
+                continue
+            mp = np.where(tmpid['InChIKey1']==otabgnps.loc[idx, 'InChIKey1'])[0]
+            if len(mp)==0:
+                continue
+
+            tprob = tmpid.sort_values(['chw_prob'], ascending=False)
+            rp = np.where(tprob['InChIKey1']==otabgnps.loc[idx, 'InChIKey1'])[0]
+            if len(rp)==0:
+                continue
+            lrank.append({'cluster index': otabgnps.loc[idx, 'cluster index'], 'metfrag': mp[0], 'rw': rp[0]})
+    return lrank
+
 

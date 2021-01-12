@@ -83,7 +83,7 @@ def getTanimoto(ms, method):
     return DataStructs.TanimotoSimilarity(fp1,fp2)
 
 # Needs expansion to encompass different fingerprints and combinations?? 
-def pairSimilarity(inchipair, metric=DataStructs.TanimotoSimilarity, 
+def pairSimilarity(inchipair, metric=DataStructs.TanimotoSimilarity,
                    fptype='circular'):
     """ Calculates fingerprint similarity """
     ms = [Chem.MolFromInchi(x) for x in inchipair]
