@@ -158,6 +158,7 @@ def cand_pair(snet, tlid, method, parallel = True, meansc = True, ncors=0):
             pool = multiprocessing.Pool()
         candpair = pool.map(edge_weight2, dfparam)
         candpair = pd.DataFrame(candpair)
+        pool.close()
         candpair.reset_index(drop=True, inplace=True)
         # Keep track of cluster id and candidate id                                                      
         candpair[12] = candpair.apply(lambda a: '_'.join(map(str, a[[3, 1]])), axis=1 )

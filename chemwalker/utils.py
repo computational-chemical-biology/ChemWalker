@@ -139,7 +139,7 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
 
     otabgnps = dbmatch.loc[dbmatch['cluster index'].isin(nds),
                        ['cluster index', 'parent mass', 'RTMean',
-                        'LibraryID', 'Smiles', 'INCHI' ]]
+                        'LibraryID', 'Smiles', 'INCHI', 'SpectrumID']]
     otabgnps.fillna('', inplace=True)
     idx_inchi = otabgnps[(otabgnps['Smiles']!='') &
                          (otabgnps['INCHI']=='')].index
@@ -185,7 +185,7 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
         dsource['InChI'] = otabgnps.loc[(otabgnps['InChIKey1']!=''), 'INCHI'].tolist()
         dsource['cluster index'] = otabgnps.loc[(otabgnps['InChIKey1']!=''), 'cluster index'].tolist()
         dsource['InChIKey1'] = otabgnps.loc[(otabgnps['InChIKey1']!=''), 'InChIKey1'].tolist()
-        dsource['Identifier'] = otabgnps.loc[(otabgnps['InChIKey1']!=''), 'LibraryID'].tolist()
+        dsource['Identifier'] = otabgnps.loc[(otabgnps['InChIKey1']!=''), 'SpectrumID'].tolist()
         dsource['Score'] = 1
         dsource['Score'] = dsource['Score'].astype(float)
         dsource['cluster index'] = dsource['cluster index'].astype(int)
