@@ -263,12 +263,12 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
     return tlid
 
 def val_known(tlid, dbmatch):
-    dbmatch.rename(columns={'#Scan#': 'cluster index', 'Precursor_MZ': 'parent mass',
-                            'RT_Query': 'RTMean', 'Compound_Name': 'LibraryID'}, inplace=True)
-    mxscore = dbmatch.groupby('cluster index')['MQScore'].idxmax().values
-    dbmatch = dbmatch.loc[mxscore]
+    otabgnps = dbmatch.copy().rename(columns={'#Scan#': 'cluster index', 'Precursor_MZ': 'parent mass',
+                                              'RT_Query': 'RTMean', 'Compound_Name': 'LibraryID'})
+    mxscore = otabgnps.groupby('cluster index')['MQScore'].idxmax().values
+    otabgnps = otabgnps.loc[mxscore]
 
-    otabgnps = dbmatch.loc[dbmatch['cluster index'].isin(tlid['cluster index']),
+    otabgnps = otabgnps.loc[otabgnps['cluster index'].isin(tlid['cluster index']),
                        ['cluster index', 'parent mass', 'RTMean',
                         'LibraryID', 'Smiles', 'INCHI' ]]
     otabgnps.fillna('', inplace=True)
