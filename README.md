@@ -1,6 +1,6 @@
 ## Installation
 <p align="center">
-  <img src="https://gitlab.com/rsilvabioinfo/chemwalker/blob/master/img/walker.gif?raw=true" alt="logo"/>
+  <img src="https://gitlab.com/rsilvabioinfo/chemwalker/-/blob/master/img/walker.gif" alt="logo"/>
 </p>
 
 ChemWalker is a python package to propagate spectral library match identities through candidate structures provided by _in silico_ fragmentation, using [random walk](https://github.com/jinhongjung/pyrwr).
