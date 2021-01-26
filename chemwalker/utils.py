@@ -3,11 +3,16 @@ import re
 import time
 import json
 import subprocess
+import uuid
+import io
 import numpy as np
 import pandas as pd
 from chemwalker.rwalker import cand_pair, random_walk
 from rdkit import Chem
 import networkx as nx
+import ftplib
+from zipfile import ZipFile
+import warnings
 
 
 precursor_ion_mode_positive = {
@@ -59,6 +64,24 @@ metfrag_param = {
                 'NumberThreads': 6
 }
 
+def get_db():
+    ftp = ftplib.FTP('seriema.fcfrp.usp.br') #connect to the ftp server
+    ftp.login('ftpuser', 'menosfrota')     #using your credentials here
+
+    destination = '%s.zip' % uuid.uuid4().hex
+    filedata = open(destination, 'wb')
+    SourceFilename = 'chemwalker/validation_filtered_db.zip'
+    ftp.retrbinary('RETR '+SourceFilename, filedata.write)
+    filedata.close()
+    ftp.quit()
+
+    with ZipFile(destination, 'r') as myzip:
+        f = myzip.open('validation_filtered_db.psv')
+        content = f.read()
+
+    os.remove(destination)
+    return pd.read_csv(io.BytesIO(content), sep='|')
+
 def filter_db(db, prmass, ppm, inchifilt=True):
     if inchifilt:
         db = db[~db.InChIKey1.duplicated()]
@@ -68,7 +91,7 @@ def filter_db(db, prmass, ppm, inchifilt=True):
     return db[cnames]
 
 def run_metfrag(spectrum, db, cluster_index, adduct='[M+H]+', ppm=15, abs_diff=0.01,
-                ispositive = True, metpath='MetFrag2.3-CL.jar'):
+                ispositive = True, metpath='MetFrag2.3-CL.jar', **kwargs):
     if ispositive:
         prmass = spectrum['params']['pepmass'][0]-precursor_ion_mode_positive[adduct][1]
         metfrag_param['PrecursorIonMode'] = precursor_ion_mode_positive[adduct][0]
@@ -124,7 +147,8 @@ def run_metfrag(spectrum, db, cluster_index, adduct='[M+H]+', ppm=15, abs_diff=0
 
 def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
                    method = 'RDKit7-linear', adduct='[M+H]+',
-                   ppm=15, ispositive = True, metfrag_res=''):
+                   ppm=15, ispositive = True, metfrag_res='',
+                   **kwargs):
     snet = net[net['ComponentIndex']==comp_index]
 
     # Obtain the nodes in the component
@@ -164,9 +188,10 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
         if any((otabgnps['cluster index']==i) & (otabgnps['InChIKey1']!='')):
             continue
         j = np.where(tabgnps['cluster index']==i)[0][0]
+        print(j)
         lid.append(run_metfrag(spectra[j], db, i,
                                adduct=adduct, ppm=ppm,
-                               ispositive=ispositive))
+                               ispositive=ispositive, **kwargs))
     end = time.time()
     print('in silico fragmentation done in:', end - start, 'seconds')
 
@@ -240,7 +265,7 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
         source.extend([x for x in G.nodes() if bool(re.search('%s_%s' % (g,idx), x))])
 
     if not len(source):
-        raise ValueError("No GNPS id to propagate from")
+        raise warnings.warn("No GNPS id to propagate from")
 
     start = time.time()
     print('Walking on the graph...')

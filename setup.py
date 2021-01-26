@@ -15,9 +15,10 @@ setup(
           'sklearn',
           'scipy',
           'requests',
-          'click',
-          'cython',
+          'xmltodict',
+          'pyteomics',
+          'click'
     ],
-    #scripts=['bin/layout_script', 'bin/hello'],
-    author_email='ridasilva@ucsd.edu'
+    scripts=['bin/network_walk'],
+    author_email='ridasilva@usp.br'
 )

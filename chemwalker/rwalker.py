@@ -5,8 +5,6 @@ from rdkit.Chem import rdMolDescriptors
 from rdkit.Avalon import pyAvalonTools
 from rdkit.Chem import AllChem
 from rdkit import Chem
-# doe it matter?
-import dill
 
 import pandas as pd
 import json

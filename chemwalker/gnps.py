@@ -48,7 +48,7 @@ class Proteosafe:
 
         if workflow=='FBMN':
             url_to_attributes = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=clusterinfo_summary/" % (taskid[0])
-            url_to_db = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=result_specnets_DB/" % (taskid[0])
+            url_to_db = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=DB_result/" % (taskid[0])
             url_to_edges = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=networking_pairs_results_file_filtered/" % (taskid[0])
             url_to_features = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=quantification_table/" % (taskid[0])
             url_to_metadata = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=metadata_table/" % (taskid[0])
@@ -157,5 +157,12 @@ class Proteosafe:
         r = requests.get(target_url)
         plist = xmltodict.parse(r.text)['parameters']['parameter']
         self.gtaskid = [x['#text'] for x in plist if x['@name']=='JOBID'][0]
+
+    def check_comp(self, comp):
+        nds = self.gnps.componentindex==comp
+        pos = self.dbmatch['#Scan#'].isin(self.gnps.loc[nds, 'cluster index'])
+        n = (self.dbmatch.loc[pos, 'Smiles'].notnull() | self.dbmatch.loc[pos, 'INCHI'].notnull()).sum()
+        print(f'Component of {nds.sum()} nodes, with {n} InChI or Smiles present.')
+
 
 
