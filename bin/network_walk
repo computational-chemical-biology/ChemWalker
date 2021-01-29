@@ -1,0 +1,117 @@
+from chemwalker.gnps import Proteosafe
+from chemwalker.utils import * 
+from chemwalker.draw import *
+import pandas as pd
+import numpy as np
+import json
+
+import click
+
+@click.group()
+def chemwalker():
+    pass
+
+@chemwalker.command()
+@click.option("--taskid",
+              help="GNPS task id")
+@click.option("--workflow",
+              default='FBMN',
+              help="Workflow type, either FBMN or V2")
+@click.option("--comp", type=int,
+              help="Component (Molecular family) index")
+@click.option("--db",
+              help=".psv Database file")
+@click.option("--out",
+              default='random_walk_output',
+              help="Output file name")
+@click.option("--kw",
+              default='{}',
+              help="Key word value arguments")
+def random_walk(taskid, workflow, comp, db, out, kw):
+    print('Retrieving GNPS result...')
+    gnps_result = Proteosafe(taskid, workflow)
+    gnps_result.get_gnps()
+    net = gnps_result.net
+    gnps_tab = gnps_result.gnps
+    spectra = gnps_result.spectra
+    match_tab = gnps_result.dbmatch
+
+    db = pd.read_csv(db, sep='|')
+    kw = json.loads(kw)
+
+    tlid = walk_conn_comp(net=net, spectra=spectra, tabgnps=gnps_tab,
+                          dbmatch=match_tab, db=db, comp_index=comp,
+                          **kw)
+
+    tlid.to_csv('%s.tsv' % out, sep='\t', index=None)
+
+@chemwalker.command()
+@click.option("--tlid",
+              help="ChemWalker candidate list")
+@click.option("--clusterid", type=int,
+              help="Cluster id present in candidate list")
+@click.option("--score", 
+              default='chw_prob',
+              help="Ranking score, either 'Score' or 'chw_prob'")
+@click.option("--nstruct", type=int,
+              default=10,
+              help="Number of candidade structures do display")
+@click.option("--out",
+              default='',
+              help="Filename to save")
+def plot_pannel(tlid, clusterid, score, nstruct, out):
+    tlid = pd.read_csv(tlid, sep='\t')
+    img = plotPannel(tlid, clusterid, score, nstruct)
+    if out!='':
+        img.save('%s.png' % out)
+    else:
+        img.show()
+
+@chemwalker.command()
+@click.option("--taskid",
+              help="GNPS task id")
+@click.option("--workflow",
+              default='FBMN',
+              help="Workflow type, either FBMN or V2")
+@click.option("--tlid",
+              help="ChemWalker candidate list")
+@click.option("--method", 
+              default='RW',
+              help="Method, either 'MF' or 'RW'")
+@click.option("--option", type=int,
+              default=1,
+              help="Options: 1 - Direct neighbors, 2 - Connected component")
+@click.option("--clusterid", type=int,
+              default=None,
+              help="If option is 1 should be provided")
+@click.option("--comp", type=int,
+              default=None,
+              help="If option is 2 should be provided")
+@click.option("--pscale", type=int,
+              default=100,
+              help="Scale of node spreading")
+@click.option("--out",
+              default='.',
+              help="Directory to save")
+def plot_graph(taskid, workflow, tlid, method,
+	       option, clusterid, comp, 
+	       pscale, out):
+    print('Retrieving GNPS result...')
+    gnps_result = Proteosafe(taskid, workflow)
+    gnps_result.get_gnps()
+    net = gnps_result.net
+    tabgnps = gnps_result.gnps
+    dbmatch = gnps_result.dbmatch
+    tlid = pd.read_csv(tlid, sep='\t')
+
+    if option==1:
+        plotGraph(dbmatch, tabgnps, tlid, net,
+                  method, dr=out, option=option,
+                  comp=comp, pos_scale=pscale)
+    else:
+        plotGraph(dbmatch, tabgnps, tlid, net,
+                  method, dr=out, option=option,
+                  clusterid=clusterid, pos_scale=pscale)
+
+if __name__ == '__main__':
+    chemwalker()

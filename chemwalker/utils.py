@@ -188,7 +188,6 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
         if any((otabgnps['cluster index']==i) & (otabgnps['InChIKey1']!='')):
             continue
         j = np.where(tabgnps['cluster index']==i)[0][0]
-        print(j)
         lid.append(run_metfrag(spectra[j], db, i,
                                adduct=adduct, ppm=ppm,
                                ispositive=ispositive, **kwargs))
@@ -265,7 +264,7 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
         source.extend([x for x in G.nodes() if bool(re.search('%s_%s' % (g,idx), x))])
 
     if not len(source):
-        raise warnings.warn("No GNPS id to propagate from")
+        warnings.warn("No GNPS id to propagate from")
 
     start = time.time()
     print('Walking on the graph...')
