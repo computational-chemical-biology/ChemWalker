@@ -11,7 +11,7 @@ ChemWalker is a python package to propagate spectral library match identities th
 Install conda
 
 ```
-wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda2-latest-Linux-x86_64.sh
 
 ```
