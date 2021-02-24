@@ -39,5 +39,5 @@ ChemWalker uses the Fusion concept, proposed on for MetFusion, for ranking impro
 
 ### License
 
-This project is licensed under the BSD 3-Clause License - see the LICENSE file for details
+This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details
 
