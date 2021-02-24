@@ -21,8 +21,13 @@ Create a dedicated conda environment and activate
 ```
 conda env create -f environment.yml
 conda activate chemwalker 
-pip install git+https://gitlab.com/rsilvabioinfo/chemwalker.git
+pip install git+https://github.com/computational-chemical-biology/ChemWalker.git
 ```
+
+## Third party
+
+ChemWalker was tested on MetFrag2.3.-CL.jar, download MetFrag CL [here](https://ipb-halle.github.io/MetFrag/projects/metfragcl/). 
+
 
 ## References
 
