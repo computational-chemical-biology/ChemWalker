@@ -28,6 +28,8 @@ for fl in fls:
         tmp['fingerprint'] = fg.split('.')[0]
         df_list.append(tmp)
 
+df = pd.concat(df_list)
+
 task = '29d517e67067476bae97a32f2d4977e0'
 nap_result = Proteosafe(task, 'nap')
 nap_result.get_nap()
@@ -89,6 +91,7 @@ for f in fgs:
     tmp['fingerprint'] = f
     fdf.append(tmp)
 
+fdf = pd.concat(fdf)
 
 for f in fgs:
     plt.plot(range(1, 21), fdf.loc[fdf.fingerprint==f, 'seed'])
@@ -98,4 +101,17 @@ plt.plot(range(1, 21), fdf.loc[fdf.fingerprint==f, 'MetFrag'], linestyle='--')
 plt.plot(range(1, 21), fdf.loc[fdf.fingerprint==f, 'Random'], linestyle='--')
 
 plt.legend(fgs.tolist()+['MetFrag', 'Random'])
+plt.show()
+
+for f in fgs:
+    if '-linear' in f:
+        plt.plot(range(1, 21), fdf.loc[fdf.fingerprint==f, 'seed'])
+
+
+plt.plot(range(1, 21), fdf.loc[fdf.fingerprint==f, 'MetFrag'])
+plt.plot(range(1, 21), fdf.loc[fdf.fingerprint==f, 'Random'])
+plt.plot(range(1, 21), fdf.loc[fdf.fingerprint==f, 'Consensus'])
+plt.plot(range(1, 21), fdf.loc[fdf.fingerprint==f, 'Fusion'])
+
+plt.legend([f for f in fgs if '-linear' in f]+['MetFrag', 'Random', 'Consensus', 'Fusion'])
 plt.show()
