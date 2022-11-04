@@ -26,7 +26,7 @@ pip install git+https://github.com/computational-chemical-biology/ChemWalker.git
 
 ## Third party
 
-ChemWalker was tested on MetFrag2.3.-CL.jar, download MetFrag CL [here](https://ipb-halle.github.io/MetFrag/projects/metfragcl/). 
+ChemWalker was tested on [MetFrag2.3.-CL.jar](http://ccbl.fcfrp.usp.br/ccbl/MetFrag2.3-CL.jar), download MetFrag CL [here](https://ipb-halle.github.io/MetFrag/projects/metfragcl/). Old releases can be found [here](https://github.com/ipb-halle/MetFragRelaunched/releases).
 
 
 ## References
