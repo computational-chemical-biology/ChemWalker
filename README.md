@@ -1,5 +1,5 @@
 # ChemWalker 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](http://colab.research.google.com/github/computational-chemical-biology/chemwalker/blob/master/basic_use_colab.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](http://colab.research.google.com/github/computational-chemical-biology/chemwalker/blob/master/notebooks/basic_use_colab.ipynb)
 
 <p align="center">
   <img src="https://github.com/computational-chemical-biology/chemwalker/blob/master/img/walker.gif" alt="logo"/>
