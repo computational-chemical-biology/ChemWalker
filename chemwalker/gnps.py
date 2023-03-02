@@ -55,6 +55,9 @@ class Proteosafe:
             url_to_spectra = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=spec/" % (taskid[0])
             self.gnps = pd.read_csv(io.StringIO(requests.get(url_to_attributes).text), sep='\t')
             self.dbmatch = pd.read_csv(io.StringIO(requests.get(url_to_db).text), sep='\t')
+            self.dbmatch = self.dbmatch.dropna(subset = ["INCHI"]).loc[(self.dbmatch.INCHI != " ") & (self.dbmatch.INCHI != "")]
+            self.dbmatch["INCHI"] = self.dbmatch.INCHI.str.strip('"')
+            self.dbmatch["INCHI"] = ["InChI=" + x if not x.startswith("InChI=") else x for x in self.dbmatch.INCHI.to_list()]
             self.net = pd.read_csv(io.StringIO(requests.get(url_to_edges).text), sep='\t')
             self.feat = pd.read_csv(io.StringIO(requests.get(url_to_features).text))
             self.meta = pd.read_csv(io.StringIO(requests.get(url_to_metadata).text), sep='\t')
@@ -74,6 +77,9 @@ class Proteosafe:
             url_to_spectra = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=spectra/specs_ms.mgf" % (taskid[0])
             self.gnps = pd.read_csv(io.StringIO(requests.get(url_to_attributes).text), sep='\t')
             self.dbmatch = pd.read_csv(io.StringIO(requests.get(url_to_db).text), sep='\t')
+            self.dbmatch = self.dbmatch.dropna(subset = ["INCHI"]).loc[(self.dbmatch.INCHI != " ") & (self.dbmatch.INCHI != "")]
+            self.dbmatch["INCHI"] = self.dbmatch.INCHI.str.strip('"')
+            self.dbmatch["INCHI"] = ["InChI=" + x if not x.startswith("InChI=") else x for x in self.dbmatch.INCHI.to_list()]
             self.net = pd.read_csv(io.StringIO(requests.get(url_to_edges).text), sep='\t')
             self.spectra = read_spectra(url_to_spectra)
             if len(taskid) > 1:
