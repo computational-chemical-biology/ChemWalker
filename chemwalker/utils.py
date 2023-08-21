@@ -146,7 +146,8 @@ def run_metfrag(spectrum, db, cluster_index, adduct='[M+H]+', ppm=15, abs_diff=0
     return metres
 
 def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
-                   method = 'RDKit7-linear', adduct='[M+H]+',
+                   method = 'RDKit7-linear', adduct='[M+H]+', 
+                   metpath = 'MetFrag2.3-CL.jar', 
                    ppm=15, ispositive = True, metfrag_res='',
                    **kwargs):
     snet = net[net['ComponentIndex']==comp_index]

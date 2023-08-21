@@ -1,6 +1,15 @@
+import sys
+import os
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
 from chemwalker.gnps import Proteosafe
 from chemwalker.utils import * 
 from chemwalker.draw import *
+
+# Restore sys.path to its original state if needed
+sys.path.remove(parent_dir)
+
 import pandas as pd
 import numpy as np
 import json
@@ -21,13 +30,16 @@ def chemwalker():
               help="Component (Molecular family) index")
 @click.option("--db",
               help=".psv Database file")
+@click.option("--metfragpath",
+              default='MetFrag2.3-CL.jar',
+              help=".jar file of metfrag 2.3 command line")
 @click.option("--out",
               default='random_walk_output',
               help="Output file name")
 @click.option("--kw",
               default='{}',
               help="Key word value arguments")
-def random_walk(taskid, workflow, comp, db, out, kw):
+def random_walk(taskid, workflow, comp, db, metfragpath, out, kw):
     print('Retrieving GNPS result...')
     gnps_result = Proteosafe(taskid, workflow)
     gnps_result.get_gnps()
@@ -35,12 +47,12 @@ def random_walk(taskid, workflow, comp, db, out, kw):
     gnps_tab = gnps_result.gnps
     spectra = gnps_result.spectra
     match_tab = gnps_result.dbmatch
-
+    
     db = pd.read_csv(db, sep='|')
     kw = json.loads(kw)
-
     tlid = walk_conn_comp(net=net, spectra=spectra, tabgnps=gnps_tab,
                           dbmatch=match_tab, db=db, comp_index=comp,
+                          metpath=metfragpath,
                           **kw)
 
     tlid.to_csv('%s.tsv' % out, sep='\t', index=None)
