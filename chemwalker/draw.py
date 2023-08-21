@@ -26,6 +26,7 @@ def plotPannel(tlid, clusterid, score = 'chw_prob', nstruct=10):
     """
     attr = tlid[tlid['cluster index']==clusterid]
     attr.sort_values(score, ascending=False, inplace=True)
+    print(attr["InChI"])
     mols = [Chem.MolFromInchi(x) for x in attr["InChI"]]
     leg = []
 

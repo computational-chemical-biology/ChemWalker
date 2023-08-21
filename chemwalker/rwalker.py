@@ -174,9 +174,9 @@ def random_walk(graph, seed, restart_prob=0.8, step=0, epsilon=0.000001,
     # print small matrix to inspect col normalization
     # plot network with 3 nodes
     if sparce_matrix:
-        w = nx.to_scipy_sparse_matrix(graph)
+        w = nx.to_scipy_sparse_array(graph)
     else:
-        w = nx.to_numpy_matrix(graph)
+        w = nx.to_numpy_array(graph)
     w = normalize_cols(w)
     c = 0
     while (thresh > epsilon and c < niter):
