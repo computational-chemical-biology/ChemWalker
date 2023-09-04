@@ -327,4 +327,20 @@ def val_known(tlid, dbmatch):
             lrank.append({'cluster index': otabgnps.loc[idx, 'cluster index'], 'metfrag': mp[0], 'rw': rp[0]})
     return lrank
 
+def pandas2dict(df):
+    return df.apply(lambda a: ','.join(map(str, a))).to_dict()
 
+def exportGraphml(tlid, net, comp, out, save=True):
+    #tlids = pd.merge(tlid, db[['InChI', 'SMILES']], on='InChI', how='left')
+    # recover smiles from structure db?
+    G = nx.from_pandas_edgelist(net[net.ComponentIndex==comp],
+                                'CLUSTERID1', 'CLUSTERID2')
+    slid = tlid[['Score', 'InChI', 'MonoisotopicMass',
+                  'Identifier', 'MolecularFormula', 'SMILES',
+                  'cluster index', 'chw_prob']]
+    attrs = slid.groupby('cluster index').apply(lambda a: pandas2dict(a)).to_dict()
+    nx.set_node_attributes(G, attrs)
+    if save:
+        nx.write_graphml(G, f'{out.replace(".graphml","")}.graphml')
+    else:
+        return G
