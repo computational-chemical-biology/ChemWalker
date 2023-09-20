@@ -12,7 +12,7 @@ setup(
           'numpy',
           'networkx',
           'matplotlib',
-          'sklearn',
+          'scikit-learn',
           'scipy',
           'requests',
           'xmltodict',
