@@ -92,7 +92,8 @@ class Proteosafe:
                 self.net1 = None
         elif workflow=='FBMN-gnps2':
             base_url = 'https://gnps2.org/resultfile?task='
-            url_to_attributes = f'{base_url}{taskid[0]}&file=nf_output/clustering/clustersummary.tsv'
+            #url_to_attributes = f'{base_url}{taskid[0]}&file=nf_output/clustering/clustersummary.tsv'
+            url_to_attributes = f'{base_url}{taskid[0]}&file=nf_output/networking/clustersummary_with_groups.tsv'
             url_to_db = f'{base_url}{taskid[0]}&file=nf_output/library/merged_results_with_gnps.tsv'
             url_to_edges = f'{base_url}{taskid[0]}&file=nf_output/networking/filtered_pairs.tsv'
             url_to_spectra = f'{base_url}{taskid[0]}&file=nf_output/clustering/specs_ms.mgf'
