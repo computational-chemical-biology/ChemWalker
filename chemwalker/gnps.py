@@ -90,6 +90,22 @@ class Proteosafe:
             else:
                 self.gnps1 = None
                 self.net1 = None
+        elif workflow=='FBMN-gnps2':
+            base_url = 'https://gnps2.org/resultfile?task='
+            url_to_attributes = f'{base_url}{taskid[0]}&file=nf_output/clustering/clustersummary.tsv'
+            url_to_db = f'{base_url}{taskid[0]}&file=nf_output/library/merged_results_with_gnps.tsv'
+            url_to_edges = f'{base_url}{taskid[0]}&file=nf_output/networking/filtered_pairs.tsv'
+            url_to_spectra = f'{base_url}{taskid[0]}&file=nf_output/clustering/specs_ms.mgf'
+            url_to_features = f'{base_url}{taskid[0]}&file=nf_output/clustering/featuretable_reformated.csv'
+            url_to_metadata = f'{base_url}{taskid[0]}&file=nf_output/metadata/merged_metadata.tsv'
+            self.gnps = pd.read_csv(io.StringIO(requests.get(url_to_attributes).text), sep='\t')
+            self.dbmatch = pd.read_csv(io.StringIO(requests.get(url_to_db).text), sep='\t')
+            self.net = pd.read_csv(io.StringIO(requests.get(url_to_edges).text), sep='\t')
+            self.spectra = read_spectra(url_to_spectra)
+            self.feat = pd.read_csv(io.StringIO(requests.get(url_to_features).text))
+            self.meta = pd.read_csv(io.StringIO(requests.get(url_to_metadata).text), sep='\t')
+        else:
+            raise Exception("Unknown workflow type")
 
     def get_nap(self):
         """ Sends a request to ProteoSAFe.
