@@ -36,10 +36,14 @@ def chemwalker():
 @click.option("--out",
               default='random_walk_output',
               help="Output file name")
+@click.option("--savegraph",
+              default=1,
+              help="Saves a graph with same file name")
 @click.option("--kw",
               default='{}',
               help="Key word value arguments")
-def random_walk(taskid, workflow, comp, db, metfragpath, out, kw):
+def random_walk(taskid, workflow, comp, db, 
+		metfragpath, out, savegraph, kw):
     print('Retrieving GNPS result...')
     gnps_result = Proteosafe(taskid, workflow)
     gnps_result.get_gnps()
@@ -54,6 +58,9 @@ def random_walk(taskid, workflow, comp, db, metfragpath, out, kw):
                           dbmatch=match_tab, db=db, comp_index=comp,
                           metpath=metfragpath,
                           **kw)
+    
+    if savegraph:
+        exportGraphml(tlid, net, comp, db, out, save=True)    	
 
     tlid.to_csv('%s.tsv' % out, sep='\t', index=None)
 
