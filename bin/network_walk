@@ -125,5 +125,42 @@ def plot_graph(taskid, workflow, tlid, method,
                   method, dr=out, option=option,
                   clusterid=clusterid, pos_scale=pscale)
 
+
+@chemwalker.command()
+@click.option("--taskid",
+              default=None,
+              help="GNPS task id")
+@click.option("--workflow",
+              default='FBMN',
+              help="Workflow type, either FBMN, FBMN-gnps2 or V2")
+@click.option("--tlid",
+              help="ChemWalker candidate list file name")
+@click.option("--net", 
+              default=None,
+              help="Edge list file, should be provided if taskid is None")
+@click.option("--db", 
+              help="Structure database .tsv file name")
+@click.option("--compindex", type=int,
+              help="Component index to select nodes")
+@click.option("--out",
+              help="Output filename")
+def save_graphml(taskid, workflow, tlid, net,
+                db, compindex, out):
+    if taskid is not None:
+    	print('Retrieving GNPS result...')
+    	gnps_result = Proteosafe(taskid, workflow)
+    	gnps_result.get_gnps()
+    	net = gnps_result.net
+    elif net is not None: 
+    	net = pd.read_csv(net, sep='\t')
+    else:
+        raise Exception("Either taskid or edgelist file should be provided")
+       
+    tlid = pd.read_csv(tlid, sep='\t')
+    db = pd.read_csv(db, sep='\t')
+
+    exportGraphml(tlid, net, compindex, db, out, save=True)
+
+
 if __name__ == '__main__':
     chemwalker()
