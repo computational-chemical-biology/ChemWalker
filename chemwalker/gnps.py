@@ -138,10 +138,10 @@ class Proteosafe:
         taskid = self.taskid
         ndict = {}
 
-        url = 'http://dorresteinappshub.ucsd.edu:5001/NAPviewer/?task=%s' % taskid
+        url = 'http://seriema.fcfrp.usp.br:5003/NAPviewer/?task=%s' % taskid
         rnap = requests.get(url)
         if rnap.status_code==200:
-            base_url = 'http://dorresteinappshub.ucsd.edu:5001/NAPviewer/static/downloads/{0}/{1}'
+            base_url = 'http://seriema.fcfrp.usp.br:5003/NAPviewer/static/downloads/{0}/{1}'
             url_to_tab = base_url.format(*[taskid, 'tabgnps.tsv'])
             url_to_net = base_url.format(*[taskid, 'net.tsv'])
             url_to_mlist = base_url.format(*[taskid, 'mlist.json'])
