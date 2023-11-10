@@ -339,8 +339,14 @@ def val_known(tlid, dbmatch):
 def pandas2dict(df):
     return df.apply(lambda a: ','.join(map(str, a))).to_dict()
 
-def exportGraphml(tlid, net, comp, db, out, save=True):
+def exportGraphml(tlid, net, comp, db, out, save=True, **kwargs):
     tlid = pd.merge(tlid, db[['InChI', 'SMILES', 'class_name']], on='InChI', how='left')
+    if kwargs.values():
+       tlid = pd.merge(tlid, [*kwargs.values()][0][['SpectrumID', 'class', 'Smiles']],
+                       left_on='Identifier', right_on='SpectrumID', how='left')
+       tlid.loc[tlid.Identifier.str.contains('CCMSLIB'), 'class_name'] = tlid.loc[tlid.Identifier.str.contains('CCMSLIB'), 'class']
+       tlid.loc[tlid.Identifier.str.contains('CCMSLIB'), 'SMILES'] = tlid.loc[tlid.Identifier.str.contains('CCMSLIB'), 'Smiles']
+       tlid.drop(['SpectrumID', 'class', 'Smiles'], axis=1, inplace=True)
     # recover smiles from structure db?
     if comp!=0:
         G = nx.from_pandas_edgelist(net[net.ComponentIndex==comp],

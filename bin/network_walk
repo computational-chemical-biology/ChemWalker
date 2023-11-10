@@ -160,6 +160,9 @@ def plot_graph(taskid, workflow, tlid, method,
 @click.option("--net", 
               default=None,
               help="Edge list file, should be provided if taskid is None")
+@click.option("--matches", 
+              default=None,
+              help="GNPS library search matches table")
 @click.option("--db", 
               help="Structure database .tsv file name")
 @click.option("--compindex", type=int,
@@ -173,15 +176,17 @@ def save_graphml(taskid, workflow, tlid, net,
     	gnps_result = Proteosafe(taskid, workflow)
     	gnps_result.get_gnps()
     	net = gnps_result.net
+        match_tab = gnps_result.dbmatch
     elif net is not None: 
     	net = pd.read_csv(net, sep='\t')
+    	match_tab = pd.read_csv(matches, sep='\t')
     else:
         raise Exception("Either taskid or edgelist file should be provided")
        
     tlid = pd.read_csv(tlid, sep='\t')
     db = pd.read_csv(db, sep='\t')
 
-    exportGraphml(tlid, net, compindex, db, out, save=True)
+    exportGraphml(tlid, net, compindex, db, out, save=True, match_tab=match_tab)
 
 
 if __name__ == '__main__':
