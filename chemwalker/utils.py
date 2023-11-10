@@ -272,7 +272,10 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
             print(f'No seed for - InChIKey1:{k}, cluster index:{g}')
         source.extend([x for x in G.nodes() if bool(re.search('%s_%s' % (g,idx), x))])
 
+    tlid['uid'] = tlid.apply(lambda a: f'{a["cluster index"]}_{a["Identifier"]}', axis=1)
+
     if not len(source):
+        source = tlid.groupby('cluster index').first()['uid'].tolist()
         warnings.warn("No GNPS id to propagate from")
 
     start = time.time()
@@ -280,8 +283,6 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
     p_t = random_walk(G, source)
     end = time.time()
     print('walking done in:', end - start, 'seconds')
-
-    tlid['uid'] = tlid.apply(lambda a: f'{a["cluster index"]}_{a["Identifier"]}', axis=1)
 
     mol_probs = zip(G.nodes(), p_t.tolist())
     dprob = pd.DataFrame(list(mol_probs))
