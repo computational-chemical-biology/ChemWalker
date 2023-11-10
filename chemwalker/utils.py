@@ -177,7 +177,14 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
     inchikey = [Chem.InchiToInchiKey(x) if x!='' else '' for x in otabgnps['INCHI']]
 
     # Record the first block of InChIKey
-    otabgnps['InChIKey1'] = [x.split('-')[0] if x!='' else '' for x in inchikey]
+    tmpkey = []
+    for x in inchikey:
+        if x!='' and x is not None:
+            tmpkey.append(x.split('-')[0])
+        else:
+            tmpkey.append('')
+
+    otabgnps['InChIKey1'] = tmpkey
 
     lid = []
 
@@ -195,9 +202,10 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
     end = time.time()
     print('in silico fragmentation done in:', end - start, 'seconds')
 
-    tlid = pd.concat(lid)
-    if not len(tlid):
+    if not len(lid):
         raise ValueError("No candidate found by MetFrag")
+
+    tlid = pd.concat(lid)
 
     if  metfrag_res !='':
         with open('%s.json' % metrag_res) as f:
@@ -333,8 +341,11 @@ def pandas2dict(df):
 def exportGraphml(tlid, net, comp, db, out, save=True):
     tlid = pd.merge(tlid, db[['InChI', 'SMILES', 'class_name']], on='InChI', how='left')
     # recover smiles from structure db?
-    G = nx.from_pandas_edgelist(net[net.ComponentIndex==comp],
-                                'CLUSTERID1', 'CLUSTERID2')
+    if comp!=0:
+        G = nx.from_pandas_edgelist(net[net.ComponentIndex==comp],
+                                    'CLUSTERID1', 'CLUSTERID2')
+    else:
+        G = nx.from_pandas_edgelist(net, 'CLUSTERID1', 'CLUSTERID2')
     slid = tlid[['Score', 'InChI', 'MonoisotopicMass',
                   'Identifier', 'MolecularFormula','class_name',
                   'SMILES', 'cluster index', 'chw_prob']]

@@ -13,6 +13,7 @@ sys.path.remove(parent_dir)
 import pandas as pd
 import numpy as np
 import json
+import warnings
 
 import click
 
@@ -54,17 +55,31 @@ def random_walk(taskid, workflow, comp, db,
     
     db = pd.read_csv(db, sep='|')
     kw = json.loads(kw)
-    tlid = walk_conn_comp(net=net, spectra=spectra, tabgnps=gnps_tab,
-                          dbmatch=match_tab, db=db, comp_index=comp,
-                          metpath=metfragpath,
-                          **kw)
+    if comp!=0:
+        tlid = walk_conn_comp(net=net, spectra=spectra, tabgnps=gnps_tab,
+                              dbmatch=match_tab, db=db, comp_index=comp,
+                              metpath=metfragpath, **kw)
+    else:
+        ltlid = []
+        for c in net.ComponentIndex.unique():  
+            if c!= -1:
+                try:
+                    ltlid.append(walk_conn_comp(net=net, spectra=spectra, tabgnps=gnps_tab,
+                                                dbmatch=match_tab, db=db, comp_index=c,
+                                                metpath=metfragpath, **kw))
+                except Exception as error:
+                    print("An exception occurred:", error)
+            else:
+                warnings.warn("Self loops are not considered.")
+                pass
+        tlid = pd.concat(ltlid)
+
     
     if savegraph:
         exportGraphml(tlid, net, comp, db, out, save=True)    	
 
     tlid.to_csv('%s.tsv' % out, sep='\t', index=None)
 
-@chemwalker.command()
 @click.option("--tlid",
               help="ChemWalker candidate list")
 @click.option("--clusterid", type=int,
