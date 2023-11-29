@@ -188,14 +188,15 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
 
     lid = []
 
-    assert len(spectra) == len(tabgnps),"Mismatch between spectra and attributes."
+    ndidx = list(map(int, [x['params']['scans'] for x in spectra]))
+    assert len(spectra) == len(tabgnps.loc[tabgnps['cluster index'].isin(ndidx), 'cluster index']),"Mismatch between spectra and attributes."
 
     start = time.time()
     print('Calculating in silico fragmentation with MetFrag...')
     for i in nds:
         if any((otabgnps['cluster index']==i) & (otabgnps['InChIKey1']!='')):
             continue
-        j = np.where(tabgnps['cluster index']==i)[0][0]
+        j = ndidx.index(i)
         lid.append(run_metfrag(spectra[j], db, i,
                                adduct=adduct, ppm=ppm,
                                ispositive=ispositive, **kwargs))
