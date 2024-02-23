@@ -278,6 +278,7 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
 
     if not len(source):
         source = tlid.groupby('cluster index').first()['uid'].tolist()
+        source = list(set(source).intersection(set(G.nodes())))
         warnings.warn("No GNPS id to propagate from")
 
     start = time.time()
@@ -295,7 +296,8 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
     dprob.reset_index(inplace=True, drop=True)
     nprob = dprob.groupby('cluster index').apply(lambda grp: grp.chw_prob/grp.chw_prob.max())
     dprob['chw_prob'] = pd.DataFrame(nprob).reset_index()['chw_prob']
-    tlid = pd.merge(tlid, dprob[['uid', 'chw_prob']], on='uid')
+    # Include to isolated metfrag ids 
+    tlid = pd.merge(tlid, dprob[['uid', 'chw_prob']], on='uid', how='left')
     return tlid
 
 def val_known(tlid, dbmatch):
