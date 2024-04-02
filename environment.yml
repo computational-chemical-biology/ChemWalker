@@ -20,4 +20,4 @@ dependencies:
     - urllib3
     - xmltodict
     - zipp
-
+    - csvkit
