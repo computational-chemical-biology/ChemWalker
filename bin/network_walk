@@ -14,7 +14,7 @@ import pandas as pd
 import numpy as np
 import json
 import warnings
-
+import csv
 import click
 
 @click.group()
@@ -44,7 +44,7 @@ def chemwalker():
               default='{}',
               help="Key word value arguments")
 def random_walk(taskid, workflow, comp, db, 
-		metfragpath, out, savegraph, kw):
+        metfragpath, out, savegraph, kw):
     print('Retrieving GNPS result...')
     gnps_result = Proteosafe(taskid, workflow)
     gnps_result.get_gnps()
@@ -55,10 +55,27 @@ def random_walk(taskid, workflow, comp, db,
     
     db = pd.read_csv(db, sep='|')
     kw = json.loads(kw)
+    
     if comp!=0:
-        tlid = walk_conn_comp(net=net, spectra=spectra, tabgnps=gnps_tab,
+        # The try and catch is needed to capture those nodes with no candidates by MetFrag
+        try:
+            tlid = walk_conn_comp(net=net, spectra=spectra, tabgnps=gnps_tab,
                               dbmatch=match_tab, db=db, comp_index=comp,
                               metpath=metfragpath, **kw)
+        except Exception as error:
+            print("An exception occurred:", error)
+            headers = ["Score", "InChI", "FragmenterScore_Values", "MaximumTreeDepth", 
+                       "SmilesOfExplPeaks", "MonoisotopicMass", "Identifier", 
+                       "MolecularFormula", "FormulasOfExplPeaks", "InChIKey2", 
+                       "InChIKey1", "FragmenterScore", "ExplPeaks", "NoExplPeaks", 
+                       "NumberPeaksUsed", "cluster index", "uid", "chw_prob"
+                       ]
+
+            # Create an empty dictionary with empty lists for each header
+            empty_data = {header: [] for header in headers}
+
+            # Convert the dictionary to a DataFrame
+            tlid = pd.DataFrame(empty_data)
     else:
         ltlid = []
         for c in net.ComponentIndex.unique():  
@@ -75,10 +92,9 @@ def random_walk(taskid, workflow, comp, db,
         tlid = pd.concat(ltlid)
 
     
-    if savegraph:
-        exportGraphml(tlid, net, comp, db, out, save=True, match_tab=match_tab)    	
-
-    tlid.to_csv('%s.tsv' % out, sep='\t', index=None)
+    if savegraph and not tlid.empty:
+        exportGraphml(tlid, net, comp, db, out, save=True, match_tab=match_tab)        
+        tlid.to_csv('%s.tsv' % out, sep=',', index=None, quoting=csv.QUOTE_ALL)
 
 @click.option("--tlid",
               help="ChemWalker candidate list")
@@ -94,7 +110,7 @@ def random_walk(taskid, workflow, comp, db,
               default='',
               help="Filename to save")
 def plot_pannel(tlid, clusterid, score, nstruct, out):
-    tlid = pd.read_csv(tlid, sep='\t')
+    tlid = pd.read_csv(tlid, sep=',', quotechar='"')
     img = plotPannel(tlid, clusterid, score, nstruct)
     if out!='':
         img.save('%s.png' % out)
@@ -128,15 +144,15 @@ def plot_pannel(tlid, clusterid, score, nstruct, out):
               default='.',
               help="Directory to save")
 def plot_graph(taskid, workflow, tlid, method,
-	       option, clusterid, comp, 
-	       pscale, out):
+           option, clusterid, comp, 
+           pscale, out):
     print('Retrieving GNPS result...')
     gnps_result = Proteosafe(taskid, workflow)
     gnps_result.get_gnps()
     net = gnps_result.net
     tabgnps = gnps_result.gnps
     dbmatch = gnps_result.dbmatch
-    tlid = pd.read_csv(tlid, sep='\t')
+    tlid = pd.read_csv(tlid, sep=',', quotechar='"')
 
     if option==1:
         plotGraph(dbmatch, tabgnps, tlid, net,
@@ -169,21 +185,41 @@ def plot_graph(taskid, workflow, tlid, method,
 def save_graphml(taskid, workflow, tlid, net,
                 db, compindex, out):
     if taskid is not None:
-    	print('Retrieving GNPS result...')
-    	gnps_result = Proteosafe(taskid, workflow)
-    	gnps_result.get_gnps()
-    	net = gnps_result.net
+        print('Retrieving GNPS result...')
+        gnps_result = Proteosafe(taskid, workflow)
+        gnps_result.get_gnps()
+        net = gnps_result.net
     elif net is not None: 
     	net = pd.read_csv(net, sep='\t')
-    	match_tab = pd.read_csv(matches, sep='\t')
+    	match_tab = pd.read_csv(matches, sep='\t') # TODO BY RICARDO THIS IS A MISTAKE NOT FOUND BECAUSE net is not none
     else:
         raise Exception("Either taskid or edgelist file should be provided")
        
-    tlid = pd.read_csv(tlid, sep='\t')
-    db = pd.read_csv(db, sep='\t')
+    tlid = pd.read_csv(tlid, sep=',', quotechar='"')
+    db = pd.read_csv(db, sep='|')
 
     exportGraphml(tlid, net, compindex, db, out, save=True)
 
+@chemwalker.command()
+@click.option("--taskid",
+              default=None,
+              help="GNPS task id")
+@click.option("--workflow",
+              default='FBMN',
+              help="Workflow type, either FBMN, FBMN-gnps2 or V2")
+@click.option("--outputfile",
+              default='components_id.txt',
+              help="Output filename")
+def save_component_ids(taskid, workflow, outputfile):
+    if taskid is None:
+        raise Exception("Either taskid or edgelist file should be provided")
+    gnps_result = Proteosafe(taskid, workflow)
+    gnps_result.get_gnps()
+    net = gnps_result.net
+    componentIndexes = net.ComponentIndex.unique()
+    np.savetxt(outputfile, componentIndexes, fmt='%d')
+    for component_index in componentIndexes:
+        print(component_index)
 
 if __name__ == '__main__':
     chemwalker()
