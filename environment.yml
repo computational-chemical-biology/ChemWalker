@@ -14,7 +14,7 @@ dependencies:
     - click
     - ipython
     - networkx
-    - pyteomics
+    - pyteomics==4.7.2
     - requests
     - scikit-learn>=1.3.0
     - urllib3
