@@ -177,27 +177,37 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
     inchikey = [Chem.InchiToInchiKey(x) if x!='' else '' for x in otabgnps['INCHI']]
 
     # Record the first block of InChIKey
-    otabgnps['InChIKey1'] = [x.split('-')[0] if x!='' else '' for x in inchikey]
+    tmpkey = []
+    for x in inchikey:
+        if x!='' and x is not None:
+            tmpkey.append(x.split('-')[0])
+        else:
+            tmpkey.append('')
+
+    otabgnps['InChIKey1'] = tmpkey
 
     lid = []
 
-    assert len(spectra) == len(tabgnps),"Mismatch between spectra and attributes."
+    ndidx = list(map(int, [x['params']['scans'] for x in spectra]))
+    ndsInNet = set(net.CLUSTERID1.tolist()+net.CLUSTERID2.tolist())
+    assert len(set(ndidx).intersection(ndsInNet)) == len(tabgnps.loc[tabgnps['cluster index'].isin(ndsInNet), 'cluster index']),"Mismatch between spectra and attributes."
 
     start = time.time()
     print('Calculating in silico fragmentation with MetFrag...')
     for i in nds:
         if any((otabgnps['cluster index']==i) & (otabgnps['InChIKey1']!='')):
             continue
-        j = np.where(tabgnps['cluster index']==i)[0][0]
+        j = ndidx.index(i)
         lid.append(run_metfrag(spectra[j], db, i,
                                adduct=adduct, ppm=ppm,
                                ispositive=ispositive, **kwargs))
     end = time.time()
     print('in silico fragmentation done in:', end - start, 'seconds')
 
-    tlid = pd.concat(lid)
-    if not len(tlid):
+    if not len(lid):
         raise ValueError("No candidate found by MetFrag")
+
+    tlid = pd.concat(lid)
 
     if  metfrag_res !='':
         with open('%s.json' % metrag_res) as f:
@@ -264,7 +274,11 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
             print(f'No seed for - InChIKey1:{k}, cluster index:{g}')
         source.extend([x for x in G.nodes() if bool(re.search('%s_%s' % (g,idx), x))])
 
+    tlid['uid'] = tlid.apply(lambda a: f'{a["cluster index"]}_{a["Identifier"]}', axis=1)
+
     if not len(source):
+        source = tlid.groupby('cluster index').first()['uid'].tolist()
+        source = list(set(source).intersection(set(G.nodes())))
         warnings.warn("No GNPS id to propagate from")
 
     start = time.time()
@@ -272,8 +286,6 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
     p_t = random_walk(G, source)
     end = time.time()
     print('walking done in:', end - start, 'seconds')
-
-    tlid['uid'] = tlid.apply(lambda a: f'{a["cluster index"]}_{a["Identifier"]}', axis=1)
 
     mol_probs = zip(G.nodes(), p_t.tolist())
     dprob = pd.DataFrame(list(mol_probs))
@@ -284,7 +296,8 @@ def walk_conn_comp(net, spectra, tabgnps, dbmatch, comp_index, db,
     dprob.reset_index(inplace=True, drop=True)
     nprob = dprob.groupby('cluster index').apply(lambda grp: grp.chw_prob/grp.chw_prob.max())
     dprob['chw_prob'] = pd.DataFrame(nprob).reset_index()['chw_prob']
-    tlid = pd.merge(tlid, dprob[['uid', 'chw_prob']], on='uid')
+    # Include to isolated metfrag ids 
+    tlid = pd.merge(tlid, dprob[['uid', 'chw_prob']], on='uid', how='left')
     return tlid
 
 def val_known(tlid, dbmatch):
@@ -327,4 +340,29 @@ def val_known(tlid, dbmatch):
             lrank.append({'cluster index': otabgnps.loc[idx, 'cluster index'], 'metfrag': mp[0], 'rw': rp[0]})
     return lrank
 
+def pandas2dict(df):
+    return df.apply(lambda a: ','.join(map(str, a))).to_dict()
 
+def exportGraphml(tlid, net, comp, db, out, save=True, **kwargs):
+    tlid = pd.merge(tlid, db[['InChI', 'SMILES', 'class_name']], on='InChI', how='left')
+    if kwargs.values():
+       tlid = pd.merge(tlid, [*kwargs.values()][0][['SpectrumID', 'class', 'Smiles']],
+                       left_on='Identifier', right_on='SpectrumID', how='left')
+       tlid.loc[tlid.Identifier.str.contains('CCMSLIB'), 'class_name'] = tlid.loc[tlid.Identifier.str.contains('CCMSLIB'), 'class']
+       tlid.loc[tlid.Identifier.str.contains('CCMSLIB'), 'SMILES'] = tlid.loc[tlid.Identifier.str.contains('CCMSLIB'), 'Smiles']
+       tlid.drop(['SpectrumID', 'class', 'Smiles'], axis=1, inplace=True)
+    # recover smiles from structure db?
+    if comp!=0:
+        G = nx.from_pandas_edgelist(net[net.ComponentIndex==comp],
+                                    'CLUSTERID1', 'CLUSTERID2')
+    else:
+        G = nx.from_pandas_edgelist(net, 'CLUSTERID1', 'CLUSTERID2')
+    slid = tlid[['Score', 'InChI', 'MonoisotopicMass',
+                  'Identifier', 'MolecularFormula','class_name',
+                  'SMILES', 'cluster index', 'chw_prob']]
+    attrs = slid.groupby('cluster index').apply(lambda a: pandas2dict(a)).to_dict()
+    nx.set_node_attributes(G, attrs)
+    if save:
+        nx.write_graphml(G, f'{out.replace(".graphml","")}.graphml')
+    else:
+        return G

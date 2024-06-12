@@ -90,6 +90,27 @@ class Proteosafe:
             else:
                 self.gnps1 = None
                 self.net1 = None
+        elif workflow=='FBMN-gnps2':
+            base_url = 'https://gnps2.org/resultfile?task='
+            #url_to_attributes = f'{base_url}{taskid[0]}&file=nf_output/clustering/clustersummary.tsv'
+            url_to_attributes = f'{base_url}{taskid[0]}&file=nf_output/networking/clustersummary_with_network.tsv'
+            url_to_db = f'{base_url}{taskid[0]}&file=nf_output/library/merged_results_with_gnps.tsv'
+            url_to_edges = f'{base_url}{taskid[0]}&file=nf_output/networking/filtered_pairs.tsv'
+            url_to_spectra = f'{base_url}{taskid[0]}&file=nf_output/clustering/specs_ms.mgf'
+            url_to_features = f'{base_url}{taskid[0]}&file=nf_output/clustering/featuretable_reformated.csv'
+            url_to_metadata = f'{base_url}{taskid[0]}&file=nf_output/metadata/merged_metadata.tsv'
+            self.gnps = pd.read_csv(io.StringIO(requests.get(url_to_attributes).text), sep='\t')
+            self.gnps = self.gnps[~self.gnps['cluster index'].duplicated()]
+            self.dbmatch = pd.read_csv(io.StringIO(requests.get(url_to_db).text), sep='\t')
+            self.dbmatch = self.dbmatch.dropna(subset = ["INCHI"]).loc[(self.dbmatch.INCHI != " ") & (self.dbmatch.INCHI != "")]
+            self.dbmatch["INCHI"] = self.dbmatch.INCHI.str.strip('"')
+            self.dbmatch["INCHI"] = ["InChI=" + x if not x.startswith("InChI=") else x for x in self.dbmatch.INCHI.to_list()]
+            self.net = pd.read_csv(io.StringIO(requests.get(url_to_edges).text), sep='\t')
+            self.spectra = read_spectra(url_to_spectra)
+            self.feat = pd.read_csv(io.StringIO(requests.get(url_to_features).text))
+            self.meta = pd.read_csv(io.StringIO(requests.get(url_to_metadata).text), sep='\t')
+        else:
+            raise Exception("Unknown workflow type")
 
     def get_nap(self):
         """ Sends a request to ProteoSAFe.
@@ -117,10 +138,10 @@ class Proteosafe:
         taskid = self.taskid
         ndict = {}
 
-        url = 'http://dorresteinappshub.ucsd.edu:5001/NAPviewer/?task=%s' % taskid
+        url = 'http://seriema.fcfrp.usp.br:5003/NAPviewer/?task=%s' % taskid
         rnap = requests.get(url)
         if rnap.status_code==200:
-            base_url = 'http://dorresteinappshub.ucsd.edu:5001/NAPviewer/static/downloads/{0}/{1}'
+            base_url = 'http://seriema.fcfrp.usp.br:5003/NAPviewer/static/downloads/{0}/{1}'
             url_to_tab = base_url.format(*[taskid, 'tabgnps.tsv'])
             url_to_net = base_url.format(*[taskid, 'net.tsv'])
             url_to_mlist = base_url.format(*[taskid, 'mlist.json'])
@@ -165,8 +186,12 @@ class Proteosafe:
         self.gtaskid = [x['#text'] for x in plist if x['@name']=='JOBID'][0]
 
     def check_comp(self, comp):
-        nds = self.gnps.componentindex==comp
-        pos = self.dbmatch['#Scan#'].isin(self.gnps.loc[nds, 'cluster index'])
+        if self.workflow=='FBMN-gnps2':
+            nds = self.gnps.component==comp
+            pos = self.dbmatch['#Scan#'].isin(self.gnps.loc[nds, 'cluster index'])
+        else:
+            nds = self.gnps.componentindex==comp
+            pos = self.dbmatch['#Scan#'].isin(self.gnps.loc[nds, 'cluster index'])
         n = (self.dbmatch.loc[pos, 'Smiles'].notnull() | self.dbmatch.loc[pos, 'INCHI'].notnull()).sum()
         print(f'Component of {nds.sum()} nodes, with {n} InChI or Smiles present.')
 
