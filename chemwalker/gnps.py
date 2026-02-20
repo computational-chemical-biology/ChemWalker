@@ -1,13 +1,19 @@
 import pandas as pd
 import requests
 import io
+import re
 import xmltodict
 import json
 from pyteomics import mgf
 
+def replaceCharge(url_to_spectra):
+    filedata = re.sub('CHARGE=.+', 'CHARGE=0', requests.get(url_to_spectra).text)
+    return filedata
+
 def read_spectra(url_to_spectra):
     spectra = []
-    with mgf.MGF(io.StringIO(requests.get(url_to_spectra).text)) as reader:
+    filedata = replaceCharge(url_to_spectra)
+    with mgf.MGF(io.StringIO(filedata)) as reader:
         for spectrum in reader:
             spectra.append(spectrum)
 
